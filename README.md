@@ -1,3 +1,7 @@
 # Acquirement
 
-### Provide the bot token in a text document named "guardianToken.txt"
+### Start application and provide at first your bot token.
+
+### After providing bot token setup your needs.
+
+### Run and have fun.

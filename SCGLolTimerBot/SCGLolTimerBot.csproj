@@ -14,10 +14,4 @@
       <PackageReference Include="Spectre.Console" Version="0.55.3-alpha.0.17" />
     </ItemGroup>
 
-    <ItemGroup>
-      <None Update="guardianToken.txt">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
-
 </Project>

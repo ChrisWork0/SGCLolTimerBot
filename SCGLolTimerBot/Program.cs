@@ -14,10 +14,12 @@ namespace SCGLolTimerBot;
 
 class Program
 {
-    private static readonly string Token = File.ReadAllText("guardianToken.txt");
+    private static readonly string TokenFile = "guardianToken.txt";
 
     private static async Task Main(string[] args)
     {
+        if (!File.Exists("guardianToken.txt"))
+            SetBotToken();
         if (!File.Exists("appsettings.json") || AskForChangingData())
             SetCustomData();
         AnsiConsole.Clear();
@@ -31,7 +33,7 @@ class Program
 
     private static GatewayClient GetClient()
     {
-        GatewayClient client = new(new BotToken(Token),
+        GatewayClient client = new(new BotToken(File.ReadAllText(TokenFile)),
             new GatewayClientConfiguration()
             {
                 Intents = GatewayIntents.All | GatewayIntents.GuildUsers | GatewayIntents.GuildModeration
@@ -123,6 +125,16 @@ class Program
         };
         
         return message;
+    }
+
+    private static void SetBotToken()
+    {
+        var token = AnsiConsole.Ask<string>("Please enter your [blue]Bot-Token[/] to activate the application");
+        File.WriteAllText(TokenFile, token);
+        AnsiConsole.MarkupLine("[green]Bot token successfully provided.[/]");
+        AnsiConsole.WriteLine("Press enter to continue setup...");
+        Console.ReadLine();
+        AnsiConsole.Clear();
     }
 
     private static void SetCustomData()
