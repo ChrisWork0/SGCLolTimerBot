@@ -183,7 +183,7 @@ class Program
             }
         };
         
-        var jsonString = JsonConvert.SerializeObject(botData);
+        var jsonString = JsonConvert.SerializeObject(botData, Formatting.Indented);
         File.WriteAllText("appsettings.json", jsonString);
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[green]Setup completed successfully.[/]");
