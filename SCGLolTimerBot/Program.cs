@@ -65,14 +65,16 @@ class Program
                     
                     var sendToChannelId = Convert.ToUInt64(config.GetSection("ChannelId").Value!);
                     var availableChannelId = Convert.ToUInt64(config.GetSection("AvailableChannelId").Value!);
+                    var roleId = Convert.ToUInt64(config.GetSection("Leader").Value!);
+                    var teamId = Convert.ToUInt64(config.GetSection("Team").Value!);
                     
                     var now = DateTime.Now;
                     if (now.DayOfWeek == setDay && now.Hour == setHour && now.Minute == setMinute)
                     {
                         if (!alreadySent)
                         {
-                            await client.Rest.SendMessageAsync(sendToChannelId, CreateEmbed(availableChannelId));
-                            await client.Rest.SendMessageAsync(sendToChannelId, "<@&1503305090424111105>");
+                            await client.Rest.SendMessageAsync(sendToChannelId, CreateEmbed(availableChannelId, roleId));
+                            await client.Rest.SendMessageAsync(sendToChannelId, $"<@&{teamId}>");
                             alreadySent = true;
                         }
                     }
@@ -109,7 +111,7 @@ class Program
         };
     }
 
-    private static MessageProperties CreateEmbed(ulong channelId)
+    private static MessageProperties CreateEmbed(ulong channelId, ulong leaderId)
     {
         var today = DateTime.Today;
         var cw = (int)today.DayOfWeek >= (int)DayOfWeek.Thursday && (int)today.DayOfWeek <= (int)DayOfWeek.Sunday 
@@ -119,7 +121,7 @@ class Program
         var embed = new EmbedProperties()
         {
             Title = $"Erinnerung für KW {cw} ({cwDayPeriod.MinDate:dd.MM.} - {cwDayPeriod.MaxDate:dd.MM.yy})",
-            Description = $"Vergesst nicht eure **verfügbaren** Zeiten für nächste Woche in <#{channelId}> einzutragen!\nBitte bei plötzlichen Terminänderungen dem <@&1117484940230131784> Bescheid geben.",
+            Description = $"Vergesst nicht eure **verfügbaren** Zeiten für nächste Woche in <#{channelId}> zu aktualisieren!\nBitte bei plötzlichen Terminänderungen dem <@&{leaderId}> Bescheid geben.",
             Color = new Color(0xff0000),
             Thumbnail = new EmbedThumbnailProperties(
                 "https://cdn.discordapp.com/attachments/725042990363443302/1506289074405773353/Kopie_von_SgC_Lol_Team_Logo.png?ex=6a0db884&is=6a0c6704&hm=544e71ac965b84a6f2cd088f4f49f8518a5cc4e23781aba4074dc2cd8916f409&")
@@ -157,7 +159,8 @@ class Program
         SetBotToken();
         var channelId = AnsiConsole.Ask<ulong>("First, enter the [blue]channel ID[/] for the message's destination");
         var availableChannelId = AnsiConsole.Ask<ulong>("Then the [blue]thread ID[/] for the linked thread");
-        var leader = AnsiConsole.Ask<ulong>("Now enter the [blue]role ID[/] for the contact person");
+        var teamRole = AnsiConsole.Ask<ulong>("After that, enter the [blue]role ID[/] of your [cyan]team[/]");
+        var leader = AnsiConsole.Ask<ulong>("Now enter the [blue]role ID[/] for the [yellow]contact person[/]");
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[cyan]Now we need to specify the time at which the bot should always send the message.[/]");
         var hour = AnsiConsole.Ask<int>("First, specify at what [blue]HOUR[/] the bot should respond");
@@ -170,6 +173,7 @@ class Program
         {
             ChannelId = channelId,
             AvailableChannelId = availableChannelId,
+            Team = teamRole,
             Leader = leader,
             Timer = new Timer
             {
