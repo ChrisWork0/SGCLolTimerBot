@@ -22,12 +22,13 @@ class Program
 
     private static async Task Main(string[] args)
     {
-        if (!File.Exists("guardianToken.txt"))
-            SetBotToken();
         if (!File.Exists("appsettings.json") || AskForChangingData())
             SetCustomData();
         AnsiConsole.Clear();
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+        var setDay = (DayOfWeek)Convert.ToInt32(config.GetSection("Timer").GetSection("Day").Value!);
+        if (DateTime.Now.DayOfWeek != setDay)
+            return;
         var client = GetClient();
         CreateRequests(client, config);
         
@@ -133,9 +134,17 @@ class Program
 
     private static void SetBotToken()
     {
-        var token = AnsiConsole.Ask<string>("Please enter your [blue]Bot-Token[/] to activate the application");
-        File.WriteAllText(TokenFile, token);
-        AnsiConsole.MarkupLine("[green]Bot token successfully provided.[/]");
+        string? token;
+        if (!File.Exists(TokenFile))
+            token = AnsiConsole.Ask<string>("Please enter your [blue]Bot-Token[/] to activate the application");
+        else
+        {
+            AnsiConsole.MarkupLine("Enter your [blue]Bot-Token[/] here [italic cyan](leave empty if you don't want to change your token)[/]");
+            token = Console.ReadLine();
+        }
+        if (!string.IsNullOrEmpty(token))    
+            File.WriteAllText(TokenFile, token);
+        AnsiConsole.MarkupLine(string.IsNullOrEmpty(token) ? "[green]Bot token not set.[/]" :"[green]Bot token successfully provided.[/]");
         AnsiConsole.WriteLine("Press enter to continue setup...");
         Console.ReadLine();
         AnsiConsole.Clear();
@@ -145,6 +154,7 @@ class Program
     {
         AnsiConsole.MarkupLine("[bold cyan]Setup of SGCLolMemo-Bot:[/]");
         AnsiConsole.WriteLine();
+        SetBotToken();
         var channelId = AnsiConsole.Ask<ulong>("First, enter the [blue]channel ID[/] for the message's destination");
         var availableChannelId = AnsiConsole.Ask<ulong>("Then the [blue]thread ID[/] for the linked thread");
         var leader = AnsiConsole.Ask<ulong>("Now enter the [blue]role ID[/] for the contact person");
@@ -179,6 +189,8 @@ class Program
         AnsiConsole.WriteLine($"for the Thread '{availableChannelId}'");
         AnsiConsole.WriteLine($"with everyone with this Role '{leader}' as contact person.");
         AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[bold red]Note[/]");
+        AnsiConsole.MarkupLine("[italic red]If today's day of the week does not match the set day of the week, the program will automatically shut down after the setup prompt.[/]");
         AnsiConsole.WriteLine("Press enter to start bot...");
         Console.ReadLine();
     }
