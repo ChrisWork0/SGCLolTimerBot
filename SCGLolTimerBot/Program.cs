@@ -1,4 +1,8 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using NetCord;
 using NetCord.Gateway;
@@ -51,7 +55,7 @@ class Program
             
             AnsiConsole.MarkupLineInterpolated($"Logged in as {readyEventArgs.User.Username}, please [red]don't shutdown[/] the application!");
             AnsiConsole.WriteLine();
-            AnsiConsole.WriteLine($"Sending memo on {setDay.ToString()} at {setHour.ToString("D2")}:{setMinute.ToString("D2")}");
+            AnsiConsole.WriteLine($"Sending memo on {setDay.ToString()} at {setHour:D2}:{setMinute:D2}");
             _ = Task.Run(async () =>
             {
                 bool alreadySent = false;
@@ -62,7 +66,7 @@ class Program
                     var availableChannelId = Convert.ToUInt64(config.GetSection("AvailableChannelId").Value!);
                     
                     var now = DateTime.Now;
-                    if (now.DayOfWeek == DayOfWeek.Tuesday && now.Hour == setHour && now.Minute == setMinute)
+                    if (now.DayOfWeek == setDay && now.Hour == setHour && now.Minute == setMinute)
                     {
                         if (!alreadySent)
                         {
@@ -113,7 +117,7 @@ class Program
         var cwDayPeriod = CalendarWeekHelper.GetCalendarWeek(today.Year, cw);
         var embed = new EmbedProperties()
         {
-            Title = $"Erinnerung für KW {cw} ({cwDayPeriod.MinDate.ToString("dd.MM.")} - {cwDayPeriod.MaxDate.ToString("dd.MM.yy")})",
+            Title = $"Erinnerung für KW {cw} ({cwDayPeriod.MinDate:dd.MM.} - {cwDayPeriod.MaxDate:dd.MM.yy})",
             Description = $"Vergesst nicht eure **verfügbaren** Zeiten für nächste Woche in <#{channelId}> einzutragen!\nBitte bei plötzlichen Terminänderungen dem <@&1117484940230131784> Bescheid geben.",
             Color = new Color(0xff0000),
             Thumbnail = new EmbedThumbnailProperties(

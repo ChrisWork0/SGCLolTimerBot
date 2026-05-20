@@ -1,4 +1,6 @@
-﻿namespace SCGLolTimerBot.Helper;
+﻿using System;
+
+namespace SCGLolTimerBot.Helper;
 
 public static class CalendarWeekHelper
 {
