@@ -72,7 +72,7 @@ class Program
                         if (!alreadySent)
                         {
                             await client.Rest.SendMessageAsync(sendToChannelId, CreateEmbed(availableChannelId));
-                            await client.Rest.SendMessageAsync(sendToChannelId, "<@&1117484940230131784>");
+                            await client.Rest.SendMessageAsync(sendToChannelId, "<@&1503305090424111105>");
                             alreadySent = true;
                         }
                     }
