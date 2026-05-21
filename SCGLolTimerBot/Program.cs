@@ -26,11 +26,15 @@ class Program
             SetCustomData();
         AnsiConsole.Clear();
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
-        var setDay = (DayOfWeek)Convert.ToInt32(config.GetSection("Timer").GetSection("Day").Value!);
-        if (DateTime.Now.DayOfWeek != setDay)
+        int? day = config.GetSection("Timer").GetSection("Day").Value == null
+            ? null
+            : Convert.ToInt32(config.GetSection("Timer").GetSection("Day").Value!);
+        DayOfWeek? setDay = day == null ? null : (DayOfWeek)day;
+        if (DateTime.Now.DayOfWeek != setDay && setDay != null)
             return;
         var client = GetClient();
-        CreateRequests(client, config);
+        var restClient = new RestClient(new BotToken(File.ReadAllText(TokenFile)));
+        CreateRequests(client, restClient, config);
         
         await client.StartAsync();
         await Task.Delay(-1);
@@ -46,17 +50,21 @@ class Program
         return client;
     }
 
-    private static void CreateRequests(GatewayClient client, IConfiguration config)
+    private static void CreateRequests(GatewayClient client, RestClient restClient, IConfiguration config)
     {
         client.Ready += readyEventArgs =>
         {
             var setHour = Convert.ToInt32(config.GetSection("Timer").GetSection("Hour").Value!);
             var setMinute = Convert.ToInt32(config.GetSection("Timer").GetSection("Minute").Value!);
-            var setDay = (DayOfWeek)Convert.ToInt32(config.GetSection("Timer").GetSection("Day").Value!);
+            int? day = config.GetSection("Timer").GetSection("Day").Value == null
+                ? null
+                : Convert.ToInt32(config.GetSection("Timer").GetSection("Day").Value!);
+            DayOfWeek? setDay = day == null ? null : (DayOfWeek)day;
+            string showDay = setDay == null ? "every day" : setDay.ToString();
             
             AnsiConsole.MarkupLineInterpolated($"Logged in as {readyEventArgs.User.Username}, please [red]don't shutdown[/] the application!");
             AnsiConsole.WriteLine();
-            AnsiConsole.WriteLine($"Sending memo on {setDay.ToString()} at {setHour:D2}:{setMinute:D2}");
+            AnsiConsole.MarkupLineInterpolated($"Sending memo on [bold cyan]{showDay}[/] at [bold cyan]{setHour:D2}:{setMinute:D2}[/]");
             _ = Task.Run(async () =>
             {
                 bool alreadySent = false;
@@ -67,12 +75,17 @@ class Program
                     var availableChannelId = Convert.ToUInt64(config.GetSection("AvailableChannelId").Value!);
                     var roleId = Convert.ToUInt64(config.GetSection("Leader").Value!);
                     var teamId = Convert.ToUInt64(config.GetSection("Team").Value!);
+
+                    var restMessages = await GetAllMessages(restClient, sendToChannelId);
                     
                     var now = DateTime.Now;
-                    if (now.DayOfWeek == setDay && now.Hour == setHour && now.Minute == setMinute)
+                    if ((now.DayOfWeek == setDay || setDay == null) && now.Hour == setHour && now.Minute == setMinute)
                     {
                         if (!alreadySent)
                         {
+                            var botMessages = restMessages.Where(m => m.Author.Id == 1352773418851766302)
+                                .Select(m => m.Id).ToList();
+                            await client.Rest.DeleteMessagesAsync(sendToChannelId, botMessages);
                             await client.Rest.SendMessageAsync(sendToChannelId, CreateEmbed(availableChannelId, roleId));
                             await client.Rest.SendMessageAsync(sendToChannelId, $"<@&{teamId}>");
                             alreadySent = true;
@@ -121,7 +134,7 @@ class Program
         var embed = new EmbedProperties()
         {
             Title = $"Erinnerung für KW {cw} ({cwDayPeriod.MinDate:dd.MM.} - {cwDayPeriod.MaxDate:dd.MM.yy})",
-            Description = $"Vergesst nicht eure **verfügbaren** Zeiten für nächste Woche in <#{channelId}> zu aktualisieren!\nBitte bei plötzlichen Terminänderungen dem <@&{leaderId}> Bescheid geben.",
+            Description = $"Vergesst nicht eure **verfügbaren** Zeiten für die Woche in <#{channelId}> zu aktualisieren!\nBitte bei plötzlichen Terminänderungen dem <@&{leaderId}> Bescheid geben.",
             Color = new Color(0xff0000),
             Thumbnail = new EmbedThumbnailProperties(
                 "https://cdn.discordapp.com/attachments/725042990363443302/1506289074405773353/Kopie_von_SgC_Lol_Team_Logo.png?ex=6a0db884&is=6a0c6704&hm=544e71ac965b84a6f2cd088f4f49f8518a5cc4e23781aba4074dc2cd8916f409&")
@@ -166,8 +179,8 @@ class Program
         var hour = AnsiConsole.Ask<int>("First, specify at what [blue]HOUR[/] the bot should respond");
         var minute = AnsiConsole.Ask<int>("Finally, just enter the [blue]MINUTE[/]");
         
-        var dayOfWeek = AnsiConsole.Prompt(new SelectionPrompt<DayOfWeek>().Title("Select the [blue]DAY[/] for sending the message:")
-            .AddChoices(DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday));
+        var dayOfWeek = AnsiConsole.Prompt(new SelectionPrompt<string>().Title("Select the [blue]DAY[/] for sending the message:")
+            .AddChoices("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Every day"));
 
         var botData = new BotData
         {
@@ -177,7 +190,7 @@ class Program
             Leader = leader,
             Timer = new Timer
             {
-                Day =  dayOfWeek,
+                Day =  GetDayOfWeek(dayOfWeek),
                 Hour = hour,
                 Minute = minute,
             }
@@ -202,5 +215,62 @@ class Program
     private static bool AskForChangingData()
     {
         return AnsiConsole.Confirm("Wanna change the bot setup?");
+    }
+
+    private static DayOfWeek? GetDayOfWeek(string day)
+    {
+        switch (day)
+        {
+            case "Sunday":
+                return DayOfWeek.Sunday;
+            case "Monday":
+                return DayOfWeek.Monday;
+            case "Tuesday":
+                return DayOfWeek.Tuesday;
+            case "Wednesday":
+                return DayOfWeek.Wednesday;
+            case "Thursday":
+                return DayOfWeek.Thursday;
+            case "Friday":
+                return DayOfWeek.Friday;
+            case "Saturday":
+                return DayOfWeek.Saturday;
+            default:
+                return null;
+        }
+    }
+
+    private static async Task<List<RestMessage>> GetAllMessages(RestClient actualRestClient, ulong textChannelId)
+    {
+        var messages = new List<RestMessage>();
+    
+        ulong? lastMessageId = null;
+        int count = 10; 
+
+        while (count > 0)
+        {
+            List<RestMessage> batch = new();
+            var fetchedMessages = actualRestClient.GetMessagesAsync(textChannelId, new MessageReactionsPaginationProperties()
+            {
+                From = lastMessageId,
+                BatchSize = 10
+            });
+
+            await foreach (var msg in fetchedMessages)
+            {
+                batch.Add(msg);
+            }
+
+            if (batch.Count == 0)
+                break;
+        
+            messages.AddRange(batch);
+            lastMessageId = batch.Last().Id;
+
+            count--;
+
+        }
+
+        return messages;
     }
 }
