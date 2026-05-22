@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Mime;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using NetCord;
@@ -35,7 +37,6 @@ class Program
         var client = GetClient();
         var restClient = new RestClient(new BotToken(File.ReadAllText(TokenFile)));
         CreateRequests(client, restClient, config);
-        
         await client.StartAsync();
         await Task.Delay(-1);
     }
@@ -89,6 +90,7 @@ class Program
                             await client.Rest.SendMessageAsync(sendToChannelId, CreateEmbed(availableChannelId, roleId));
                             await client.Rest.SendMessageAsync(sendToChannelId, $"<@&{teamId}>");
                             alreadySent = true;
+                            Process.GetCurrentProcess().Kill();
                         }
                     }
                     else
