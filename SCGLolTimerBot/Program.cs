@@ -86,7 +86,8 @@ class Program
                         {
                             var botMessages = restMessages.Where(m => m.Author.Id == 1352773418851766302)
                                 .Select(m => m.Id).ToList();
-                            await client.Rest.DeleteMessagesAsync(sendToChannelId, botMessages);
+                            foreach(var msg in botMessages)
+                                await client.Rest.DeleteMessageAsync(sendToChannelId, botMessage);
                             await client.Rest.SendMessageAsync(sendToChannelId, CreateEmbed(availableChannelId, roleId));
                             await client.Rest.SendMessageAsync(sendToChannelId, $"<@&{teamId}>");
                             alreadySent = true;
